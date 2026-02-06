@@ -12,7 +12,7 @@ BLACK_PURPLE = '#211E52'
 LIGHT_PURPLE = '#BBBAF6' # Added for the underline style
 DARK_GREY = '#4A4A4A'
 
-st.set_page_config(page_title="Indexed Chart Creator", layout="wide")
+st.set_page_config(page_title="Index Chart Creator", layout="wide")
 
 # Custom CSS for UI Distinction and Header Styling
 st.markdown(f"""
@@ -94,7 +94,7 @@ st.image("https://github.com/justinxtsui/Index-chart-maker/blob/main/Screenshot%
 
 st.markdown('<div class="app-title">Dexter ( ◡̀_◡́)ᕤ </div>', unsafe_allow_html=True)
 st.markdown('<div class="app-attribution">by JT</div>', unsafe_allow_html=True)
-st.markdown('<p class="app-subtitle">Turn fundraising exports into indexed time series charts (For internal use only)</p>', unsafe_allow_html=True)
+st.markdown('<p class="app-subtitle">I can turn any data into an index chart.</p>', unsafe_allow_html=True)
 st.markdown('<hr class="bold-divider">', unsafe_allow_html=True)
 
 # --- SIDEBAR LOGIC FLOW ---
