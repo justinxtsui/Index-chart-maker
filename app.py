@@ -1,3 +1,75 @@
+import streamlit as st
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.ticker import FuncFormatter
+import io
+
+# --- DESIGN CONFIGURATION ---
+PURPLE = '#6B67DA'
+DARK_PURPLE = '#38358E'
+BLACK_PURPLE = '#211E52'
+DARK_GREY = '#4A4A4A'
+
+st.set_page_config(page_title="Indexed Chart Creator", layout="wide")
+
+# Custom CSS for UI Distinction and Header Styling
+st.markdown(f"""
+    <style>
+    [data-testid="stSidebar"] {{
+        background-color: #f0f2f6;
+        padding-top: 2rem;
+    }}
+    .stButton>button {{
+        width: 100%;
+        border-radius: 5px;
+        background-color: {PURPLE};
+        color: white;
+        font-weight: bold;
+        border: none;
+        padding: 0.5rem;
+    }}
+    .stButton>button:hover {{
+        background-color: {DARK_PURPLE};
+        color: white;
+    }}
+    /* Title Styling */
+    .app-title {{
+        font-size: 48px;
+        font-weight: 800;
+        letter-spacing: -1px;
+        color: {BLACK_PURPLE};
+        margin-bottom: 0px;
+        line-height: 1.2;
+    }}
+    /* Subtitle updated to Black */
+    .app-subtitle {{
+        color: #000000;
+        font-size: 18px;
+        margin-bottom: 5px;
+        font-weight: normal;
+    }}
+    /* Custom Bolder Divider */
+    .bold-divider {{
+        height: 3px;
+        background-color: #e6e9ef;
+        border: none;
+        margin-top: 10px;
+        margin-bottom: 25px;
+    }}
+    </style>
+    """, unsafe_allow_html=True)
+
+# Set global font configuration
+plt.rcParams['svg.fonttype'] = 'none'
+plt.rcParams['font.family'] = 'sans-serif'
+plt.rcParams['font.sans-serif'] = ['Arial', 'Public Sans', 'DejaVu Sans']
+
+# --- MAIN AREA HEADER ---
+st.markdown('<h1 class="app-title">(In)Dexter by JT @Beauhurst Insights</h1>', unsafe_allow_html=True)
+st.markdown('<p class="app-subtitle">Turn fundraising exports into indexed time series charts (For internal use only)</p>', unsafe_allow_html=True)
+st.markdown('<hr class="bold-divider">', unsafe_allow_html=True)
+
 # --- SIDEBAR LOGIC FLOW ---
 with st.sidebar:
     st.header("🛠 Configuration")
@@ -96,3 +168,116 @@ with st.sidebar:
 
         except Exception as e:
             st.sidebar.error(f"Setup Error: {e}")
+
+# --- MAIN CHARTING LOGIC ---
+if uploaded_file is not None and value_columns:
+    try:
+        temp_chart_data = data.copy()
+        if time_period == 'Year':
+            temp_chart_data[time_column] = pd.to_numeric(temp_chart_data[time_column].astype(str).str.strip(), errors='coerce')
+            if temp_chart_data[time_column].isna().any():
+                temp_chart_data[time_column] = pd.to_datetime(data[time_column], errors='coerce').dt.year
+        elif time_period == 'Month':
+            temp_chart_data[time_column] = pd.to_datetime(temp_chart_data[time_column], errors='coerce')
+        elif time_period == 'Quarter':
+            temp_dt_c = pd.to_datetime(temp_chart_data[time_column], errors='coerce')
+            temp_chart_data[time_column] = temp_dt_c.dt.to_period('Q')
+        
+        temp_chart_data = temp_chart_data.dropna(subset=[time_column])
+        if "Row Count" in value_columns: temp_chart_data["Row Count"] = 1
+
+        plot_groups = {}
+        if use_category and selected_categories:
+            if include_overall:
+                ov_agg = temp_chart_data.groupby(time_column)[value_columns].sum().reset_index()
+                for v in value_columns: plot_groups[f"Overall - {v}"] = ov_agg[[time_column, v]]
+            for cat in selected_categories:
+                c_agg = temp_chart_data[temp_chart_data[category_column] == cat].groupby(time_column)[value_columns].sum().reset_index()
+                for v in value_columns: plot_groups[f"{cat} - {v}"] = c_agg[[time_column, v]]
+        else:
+            std_agg = temp_chart_data.groupby(time_column)[value_columns].sum().reset_index()
+            for v in value_columns: plot_groups[v] = std_agg[[time_column, v]]
+
+        processed_lines = []
+        for orig_label, df in plot_groups.items():
+            filtered = df[(df[time_column] >= start_time) & (df[time_column] <= end_time)].sort_values(time_column).reset_index(drop=True)
+            if not filtered.empty:
+                v_col = filtered.columns[1]
+                base_val = filtered[filtered[time_column] == start_time][v_col].values[0]
+                filtered['Idx'] = (filtered[v_col] / base_val * 100) if base_val != 0 else 100.0
+                processed_lines.append({'label': orig_label, 'data': filtered})
+
+        fig, ax = plt.subplots(figsize=(16, 8))
+        fig.patch.set_facecolor('none')
+        ax.set_facecolor('none')
+        
+        colors = [PURPLE, DARK_PURPLE, DARK_GREY, '#FF6B6B', '#4ECDC4', '#45B7D1', '#F9A825', '#2E7D32']
+        x_vals_str = [str(t) for t in sorted(all_times) if start_time <= t <= end_time]
+        x_pos = np.arange(len(x_vals_str))
+        font_size = int(max(7, min(14, 150 / len(x_vals_str))))
+
+        for i, line_obj in enumerate(processed_lines):
+            color = colors[i % len(colors)]
+            ax.plot(x_pos, line_obj['data']['Idx'], marker='o', label=custom_labels.get(line_obj['label'], line_obj['label']), 
+                    color=color, linewidth=2.5, markersize=4)
+
+        if show_all_labels and processed_lines:
+            num_points = len(x_pos)
+            for idx in range(num_points):
+                current_values = []
+                for line_obj in processed_lines:
+                    if idx < len(line_obj['data']):
+                        current_values.append(line_obj['data']['Idx'][idx])
+                    else:
+                        current_values.append(None)
+                valid_vals = [v for v in current_values if v is not None]
+                if not valid_vals: continue
+                max_at_pos = max(valid_vals)
+                min_at_pos = min(valid_vals)
+
+                for i, line_obj in enumerate(processed_lines):
+                    if idx >= len(line_obj['data']): continue
+                    if only_final_label and idx != len(line_obj['data']) - 1: continue
+                    
+                    val = line_obj['data']['Idx'][idx]
+                    perc = int(round(val - 100))
+                    txt = f"{'+' if perc > 0 else ''}{perc}%"
+                    color = colors[i % len(colors)]
+
+                    if only_final_label:
+                        ax.text(idx + 0.1, val, txt, ha='left', va='center', color=color, fontweight='bold', fontsize=font_size)
+                    else:
+                        if val == max_at_pos: va, v_off = 'bottom', 3
+                        elif val == min_at_pos: va, v_off = 'top', -6
+                        else: va, v_off = 'bottom', 3
+                        ax.text(idx, val + v_off, txt, ha='center', va=va, color=color, fontweight='bold', fontsize=font_size)
+
+        ax.set_xticks(x_pos)
+        ax.set_xticklabels(x_vals_str, fontsize=font_size)
+        ax.yaxis.set_major_formatter(FuncFormatter(lambda v, p: f"{int(round(v-100))}%"))
+        ax.set_ylabel(custom_y_label, fontsize=font_size+2, fontweight='bold', color=DARK_GREY)
+        ax.tick_params(axis='both', labelsize=font_size, length=0)
+        for spine in ax.spines.values(): spine.set_visible(False)
+        ax.legend(loc='upper right', bbox_to_anchor=(1, 1.15), frameon=False, prop={'size': font_size})
+        plt.title(custom_chart_title, fontsize=21, fontweight='bold', pad=60, color=BLACK_PURPLE)
+        
+        if only_final_label: 
+            ax.set_xlim(right=len(x_pos)-0.5+0.8)
+        else:
+            ax.set_xlim(left=-0.5, right=len(x_pos)-0.5)
+            
+        plt.tight_layout()
+        st.pyplot(fig)
+
+        with st.sidebar:
+            buf = io.BytesIO()
+            fmt = "svg" if "SVG" in export_format else "png"
+            fig.savefig(buf, format=fmt, dpi=300, bbox_inches='tight', transparent=True)
+            st.download_button(f"📥 Download {export_format}", buf.getvalue(), f"chart.{fmt}", f"image/{fmt}")
+
+    except Exception as e:
+        st.error(f"Visualization Error: {e}")
+elif uploaded_file is not None:
+    st.info("👈 Please select 'Values to Plot' in the sidebar to generate the chart.")
+else:
+    st.info("👈 Please upload your data file in the sidebar to begin.")
