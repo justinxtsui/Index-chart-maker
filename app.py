@@ -140,7 +140,6 @@ if uploaded_file is not None and value_columns:
             std_agg = temp_chart_data.groupby(time_column)[value_columns].sum().reset_index()
             for v in value_columns: plot_groups[v] = std_agg[[time_column, v]]
 
-        # Prepare processed data for all lines
         processed_lines = []
         for orig_label, df in plot_groups.items():
             filtered = df[(df[time_column] >= start_time) & (df[time_column] <= end_time)].sort_values(time_column).reset_index(drop=True)
@@ -152,21 +151,19 @@ if uploaded_file is not None and value_columns:
 
         fig, ax = plt.subplots(figsize=(16, 8))
         colors = [PURPLE, DARK_PURPLE, DARK_GREY, '#FF6B6B', '#4ECDC4', '#45B7D1', '#F9A825', '#2E7D32']
-        x_vals_str = [str(t) for t in all_times if start_time <= t <= end_time]
+        x_vals_str = [str(t) for t in sorted(all_times) if start_time <= t <= end_time]
         x_pos = np.arange(len(x_vals_str))
         font_size = int(max(7, min(14, 150 / len(x_vals_str))))
 
-        # Draw Lines
         for i, line_obj in enumerate(processed_lines):
             color = colors[i % len(colors)]
             ax.plot(x_pos, line_obj['data']['Idx'], marker='o', label=custom_labels.get(line_obj['label'], line_obj['label']), 
                     color=color, linewidth=2.5, markersize=4)
 
-        # Apply New Label Logic
         if show_all_labels and processed_lines:
             num_points = len(x_pos)
             for idx in range(num_points):
-                # Get all values at this current x-position across all lines
+                # Data points check across all lines for competitive labeling
                 current_values = []
                 for line_obj in processed_lines:
                     if idx < len(line_obj['data']):
@@ -182,7 +179,11 @@ if uploaded_file is not None and value_columns:
 
                 for i, line_obj in enumerate(processed_lines):
                     if idx >= len(line_obj['data']): continue
-                    if only_final_label and idx != num_points - 1: continue
+                    
+                    # CORRECTION: Explicit check for "Only final label"
+                    if only_final_label:
+                        if idx != len(line_obj['data']) - 1:
+                            continue  # Skip all points except the very last one for this specific line
                     
                     val = line_obj['data']['Idx'][idx]
                     perc = int(round(val - 100))
@@ -190,17 +191,15 @@ if uploaded_file is not None and value_columns:
                     color = colors[i % len(colors)]
 
                     if only_final_label:
-                        ax.text(idx + 0.15, val, txt, ha='left', va='center', color=color, fontweight='bold', fontsize=font_size)
+                        # Position to the right of the dot
+                        ax.text(idx + 0.1, val, txt, ha='left', va='center', color=color, fontweight='bold', fontsize=font_size)
                     else:
-                        # NEW LOGIC: Larger goes top, smaller goes bottom
                         if val == max_at_pos:
                             va, v_off = 'bottom', 3
                         elif val == min_at_pos:
                             va, v_off = 'top', -6
                         else:
-                            # If it's a middle value, default to top unless it's very crowded
                             va, v_off = 'bottom', 3
-                        
                         ax.text(idx, val + v_off, txt, ha='center', va=va, color=color, fontweight='bold', fontsize=font_size)
 
         ax.set_xticks(x_pos)
@@ -211,7 +210,13 @@ if uploaded_file is not None and value_columns:
         for spine in ax.spines.values(): spine.set_visible(False)
         ax.legend(loc='upper right', bbox_to_anchor=(1, 1.15), frameon=False, prop={'size': font_size})
         plt.title(custom_chart_title, fontsize=21, fontweight='bold', pad=60, color=BLACK_PURPLE)
-        if only_final_label: ax.set_xlim(right=len(x_pos)-0.5+0.8)
+        
+        # Adjust right margin to fit labels if only showing final
+        if only_final_label: 
+            ax.set_xlim(right=len(x_pos)-0.5+0.8)
+        else:
+            ax.set_xlim(left=-0.5, right=len(x_pos)-0.5)
+            
         plt.tight_layout()
         st.pyplot(fig)
 
