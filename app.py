@@ -13,7 +13,7 @@ DARK_GREY = '#4A4A4A'
 
 st.set_page_config(page_title="Indexed Chart Creator", layout="wide")
 
-# Custom CSS for polished flat UI
+# Custom CSS for UI Distinction and Header Styling
 st.markdown(f"""
     <style>
     [data-testid="stSidebar"] {{
@@ -33,17 +33,19 @@ st.markdown(f"""
         background-color: {DARK_PURPLE};
         color: white;
     }}
-    /* Main Title Styling */
+    /* Title Styling - Converted to proper Title format */
     .app-title {{
-        font-size: 36px;
+        font-size: 48px;
         font-weight: 800;
+        letter-spacing: -1px;
         color: {BLACK_PURPLE};
-        margin-bottom: -10px;
+        margin-bottom: 0px;
+        line-height: 1.2;
     }}
     .app-subtitle {{
         color: {DARK_GREY};
-        font-size: 16px;
-        margin-bottom: 10px;
+        font-size: 18px;
+        margin-bottom: 5px;
         opacity: 0.8;
     }}
     </style>
@@ -55,9 +57,9 @@ plt.rcParams['font.family'] = 'sans-serif'
 plt.rcParams['font.sans-serif'] = ['Arial', 'Public Sans', 'DejaVu Sans']
 
 # --- MAIN AREA HEADER ---
-st.markdown('<p class="app-title">Time Series Chart Generator</p>', unsafe_allow_html=True)
+st.markdown('<h1 class="app-title">Time Series Chart Generator</h1>', unsafe_allow_html=True)
 st.markdown('<p class="app-subtitle">Turn fundraising exports into professional indexed time series charts – JT</p>', unsafe_allow_html=True)
-st.divider() # The simple divider line you requested
+st.divider() # Simple divider line for visual distinction
 
 # --- SIDEBAR LOGIC FLOW ---
 with st.sidebar:
@@ -191,9 +193,8 @@ if uploaded_file is not None and value_columns:
                 filtered['Idx'] = (filtered[v_col] / base_val * 100) if base_val != 0 else 100.0
                 processed_lines.append({'label': orig_label, 'data': filtered})
 
-        # Chart Drawing
         fig, ax = plt.subplots(figsize=(16, 8))
-        fig.patch.set_facecolor('none') # Transparent background for export
+        fig.patch.set_facecolor('none')
         ax.set_facecolor('none')
         
         colors = [PURPLE, DARK_PURPLE, DARK_GREY, '#FF6B6B', '#4ECDC4', '#45B7D1', '#F9A825', '#2E7D32']
