@@ -109,15 +109,13 @@ with st.sidebar:
 
             st.divider()
 
-            # NEW SECTION: LABELS
+            # LABELS SECTION
             st.header("🏷 Labels")
             custom_chart_title = st.text_input("Chart Title", value=f"Indexed Trend ({start_time} = 100)")
             custom_y_label = st.text_input("Y Axis Label", value="Index Change (%)")
             
-            # Line Key Label Dictionary
             st.write("**Line Key Labels**")
             custom_labels = {}
-            # We generate keys based on what will be plotted
             keys_to_label = []
             if value_columns:
                 if use_category and selected_categories:
@@ -133,9 +131,10 @@ with st.sidebar:
 
             st.divider()
 
-            # 7. Design Elements
-            st.write("🎨 Design & Export")
+            # DESIGN SECTION
+            st.header("🎨 Design & Export")
             show_all_labels = st.checkbox("Show value labels on chart", value=True)
+            only_final_label = st.checkbox("Only show final year value", value=False)
             export_format = st.selectbox("Format for Adobe/Web", options=['PNG', 'SVG (Vectorized)'])
 
         except Exception as e:
@@ -198,7 +197,6 @@ if uploaded_file is not None and value_columns:
 
         for i, (original_label, df) in enumerate(final_plot_data.items()):
             color = colors[i % len(colors)]
-            # Use custom label from sidebar dict
             display_label = custom_labels.get(original_label, original_label)
             ax.plot(x_pos, df['Index'], marker='o', label=display_label, color=color, linewidth=2.5, markersize=8)
             
@@ -206,11 +204,22 @@ if uploaded_file is not None and value_columns:
                 indices = df['Index'].tolist()
                 for idx, val in enumerate(indices):
                     if pd.isna(val): continue
+                    
+                    # If "Only show final year" is checked, skip all but the last point
+                    if only_final_label and idx != len(indices) - 1:
+                        continue
+                        
                     perc = int(round(val - 100))
                     txt = f"{'+' if perc > 0 else ''}{perc}%"
-                    if idx == 0: va, v_offset = 'bottom', 3
-                    else: va, v_offset = ('bottom', 3) if val >= indices[idx-1] else ('top', -6)
-                    ax.text(idx, val + v_offset, txt, ha='center', va=va, color=color, fontweight='bold', fontsize=font_size)
+                    
+                    if only_final_label:
+                        # Position to the right of the last dot
+                        ax.text(idx + 0.15, val, txt, ha='left', va='center', color=color, fontweight='bold', fontsize=font_size)
+                    else:
+                        # Original higher/lower logic
+                        if idx == 0: va, v_offset = 'bottom', 3
+                        else: va, v_offset = ('bottom', 3) if val >= indices[idx-1] else ('top', -6)
+                        ax.text(idx, val + v_offset, txt, ha='center', va=va, color=color, fontweight='bold', fontsize=font_size)
 
         ax.set_xticks(x_pos)
         ax.set_xticklabels(x_vals_str, fontsize=font_size)
@@ -221,8 +230,14 @@ if uploaded_file is not None and value_columns:
         for spine in ax.spines.values(): spine.set_visible(False)
         ax.legend(loc='upper right', bbox_to_anchor=(1, 1.15), frameon=False, prop={'family': 'sans-serif', 'size': font_size})
         plt.title(custom_chart_title, fontsize=21, fontweight='bold', pad=60, color=BLACK_PURPLE)
-        plt.tight_layout()
         
+        # Add extra space on the right if final labels are used
+        if only_final_label:
+            ax.set_xlim(left=-0.5, right=len(x_pos) - 0.5 + 0.8)
+        else:
+            ax.set_xlim(left=-0.5, right=len(x_pos) - 0.5)
+            
+        plt.tight_layout()
         st.pyplot(fig)
 
         with st.sidebar:
