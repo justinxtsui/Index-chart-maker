@@ -33,7 +33,7 @@ st.markdown(f"""
         background-color: {DARK_PURPLE};
         color: white;
     }}
-    /* Title Styling */
+    /* Title Styling - Converted to proper Title format */
     .app-title {{
         font-size: 48px;
         font-weight: 800;
@@ -42,20 +42,11 @@ st.markdown(f"""
         margin-bottom: 0px;
         line-height: 1.2;
     }}
-    /* Subtitle updated to Black */
     .app-subtitle {{
-        color: #000000;
+        color: {DARK_GREY};
         font-size: 18px;
         margin-bottom: 5px;
-        font-weight: normal;
-    }}
-    /* Custom Bolder Divider */
-    .bold-divider {{
-        height: 3px;
-        background-color: #e6e9ef;
-        border: none;
-        margin-top: 10px;
-        margin-bottom: 25px;
+        opacity: 0.8;
     }}
     </style>
     """, unsafe_allow_html=True)
@@ -66,13 +57,13 @@ plt.rcParams['font.family'] = 'sans-serif'
 plt.rcParams['font.sans-serif'] = ['Arial', 'Public Sans', 'DejaVu Sans']
 
 # --- MAIN AREA HEADER ---
-st.markdown('<h1 class="app-title">Time Series Chart Generator</h1>', unsafe_allow_html=True)
-st.markdown('<p class="app-subtitle">Turn fundraising exports into professional indexed time series charts – JT</p>', unsafe_allow_html=True)
-st.markdown('<hr class="bold-divider">', unsafe_allow_html=True)
+st.markdown('<h1 class="app-title">Indexter by JT @Beauhurst Insightsr</h1>', unsafe_allow_html=True)
+st.markdown('<p class="app-subtitle">Turn fundraising exports into indexed time series charts (For internal use only)</p>', unsafe_allow_html=True)
+st.divider() # Simple divider line for visual distinction
 
 # --- SIDEBAR LOGIC FLOW ---
 with st.sidebar:
-    st.header("🛠 Configuration")
+    st.header("Select data to analysis")
     uploaded_file = st.file_uploader("Upload Data (CSV or Excel)", type=['csv', 'xlsx', 'xls'])
     
     if uploaded_file is not None:
@@ -134,7 +125,7 @@ with st.sidebar:
             st.divider()
 
             # LABELS SECTION
-            st.header("🏷 Labels")
+            st.header("Labels")
             custom_chart_title = st.text_input("Chart Title", value=f"Indexed Trend")
             custom_y_label = st.text_input("Y Axis Label", value="Index Change (%)")
             
