@@ -32,235 +32,132 @@ if uploaded_file is not None:
         
         st.success(f"File loaded successfully! {len(data)} rows found.")
         
-        # Show data preview
         with st.expander("Preview Data"):
             st.dataframe(data.head(10))
         
-        # Column selection
-        st.subheader("Chart Configuration")
-        
+        st.subheader("1. Time & Value Configuration")
         col1, col2 = st.columns(2)
         
         with col1:
-            # Time column selection
-            time_column = st.selectbox(
-                "Select time column",
-                options=data.columns.tolist(),
-                help="Choose the column that contains time data (year, month, quarter, etc.)"
-            )
-            
-            # Time period type
-            time_period = st.selectbox(
-                "Time period type",
-                options=['Year', 'Month', 'Quarter', 'Custom'],
-                help="Select the type of time period"
-            )
+            time_column = st.selectbox("Select time column", options=data.columns.tolist())
+            time_period = st.selectbox("Time period type", options=['Year', 'Month', 'Quarter', 'Custom'])
         
         with col2:
-            # Value columns selection (multiple)
-            value_columns = st.multiselect(
-                "Select value columns to plot",
-                options=[col for col in data.columns if col != time_column],
-                help="Choose one or more columns to display as lines"
-            )
+            available_cols = [col for col in data.columns if col != time_column]
+            value_columns = st.multiselect("Select value columns to plot", options=["Row Count"] + available_cols)
+
+        # NEW: Categorization Feature
+        st.subheader("2. Categorization (Split Index)")
+        use_category = st.checkbox("Enable Categorization / Split by Column")
         
+        selected_categories = []
+        category_column = None
+        include_overall = False
+
+        if use_category:
+            cat_col1, cat_col2 = st.columns(2)
+            with cat_col1:
+                category_column = st.selectbox("Select category column", options=[c for c in data.columns if c != time_column])
+                include_overall = st.checkbox("Include Overall Data (Total trend)", value=True)
+            with cat_col2:
+                unique_cats = data[category_column].unique().tolist()
+                selected_categories = st.multiselect(f"Select values from {category_column}", options=unique_cats)
+
         if value_columns:
-            # Prepare data
-            chart_data = data[[time_column] + value_columns].copy()
+            temp_data = data.copy()
             
-            # Convert time column to appropriate format
+            # Format time
             if time_period == 'Year':
-                chart_data[time_column] = pd.to_datetime(chart_data[time_column], errors='coerce').dt.year
+                temp_data[time_column] = pd.to_datetime(temp_data[time_column], errors='coerce').dt.year
             elif time_period == 'Month':
-                chart_data[time_column] = pd.to_datetime(chart_data[time_column], errors='coerce')
+                temp_data[time_column] = pd.to_datetime(temp_data[time_column], errors='coerce')
             elif time_period == 'Quarter':
-                chart_data[time_column] = pd.to_datetime(chart_data[time_column], errors='coerce').dt.to_period('Q')
+                temp_data[time_column] = pd.to_datetime(temp_data[time_column], errors='coerce').dt.to_period('Q')
             
-            # Remove rows with NaN in time column
-            chart_data = chart_data.dropna(subset=[time_column])
-            
-            # Get unique time values
-            unique_times = sorted(chart_data[time_column].unique())
-            
-            # Year range selection
-            st.subheader("Time Range Selection")
-            col3, col4 = st.columns(2)
-            
-            with col3:
-                start_time = st.selectbox(
-                    "Start time (baseline = 0%)",
-                    options=unique_times,
-                    index=0
-                )
-            
-            with col4:
-                end_time = st.selectbox(
-                    "End time",
-                    options=unique_times,
-                    index=len(unique_times)-1
-                )
-            
-            # Filter data by time range
-            if time_period == 'Quarter':
-                chart_data_filtered = chart_data[
-                    (chart_data[time_column] >= start_time) & 
-                    (chart_data[time_column] <= end_time)
-                ].copy()
+            temp_data = temp_data.dropna(subset=[time_column])
+            if "Row Count" in value_columns:
+                temp_data["Row Count"] = 1
+
+            # Prepare plotting data structure
+            plot_groups = {}
+
+            if use_category and selected_categories:
+                # Add overall data if requested
+                if include_overall:
+                    overall_agg = temp_data.groupby(time_column)[value_columns].sum().reset_index()
+                    for v_col in value_columns:
+                        plot_groups[f"Overall - {v_col}"] = overall_agg[[time_column, v_col]]
+                
+                # Add specific category data
+                for cat in selected_categories:
+                    cat_data = temp_data[temp_data[category_column] == cat]
+                    cat_agg = cat_data.groupby(time_column)[value_columns].sum().reset_index()
+                    for v_col in value_columns:
+                        plot_groups[f"{cat} - {v_col}"] = cat_agg[[time_column, v_col]]
             else:
-                chart_data_filtered = chart_data[
-                    (chart_data[time_column] >= start_time) & 
-                    (chart_data[time_column] <= end_time)
-                ].copy()
-            
-            # Calculate indexed values
-            for col in value_columns:
-                base_value = chart_data_filtered[chart_data_filtered[time_column] == start_time][col].values[0]
-                chart_data_filtered[f'{col}_Index'] = (chart_data_filtered[col] / base_value) * 100
-            
-            # Chart options
-            st.subheader("Chart Options")
-            col5, col6 = st.columns(2)
-            
-            with col5:
-                show_labels = st.checkbox("Show percentage labels on lines", value=True)
-                chart_title = st.text_input(
-                    "Chart title",
-                    value=f"Indexed Chart ({start_time} = 100)"
-                )
-            
-            with col6:
-                export_format = st.selectbox(
-                    "Export format",
-                    options=['PNG', 'SVG'],
-                    help="Choose the format for exporting the chart"
-                )
-            
-            # Create the chart
+                # Standard no-category logic
+                standard_agg = temp_data.groupby(time_column)[value_columns].sum().reset_index()
+                for v_col in value_columns:
+                    plot_groups[v_col] = standard_agg[[time_column, v_col]]
+
+            # Time Range Selection
+            all_times = sorted(temp_data[time_column].unique())
+            st.subheader("3. Time Range & Indexing")
+            tr_col1, tr_col2 = st.columns(2)
+            with tr_col1:
+                start_time = st.selectbox("Start time (baseline = 100)", options=all_times, index=0)
+            with tr_col2:
+                end_time = st.selectbox("End time", options=all_times, index=len(all_times)-1)
+
+            # Process final indexed data
+            final_plot_data = {}
+            for label, group_df in plot_groups.items():
+                filtered = group_df[(group_df[time_column] >= start_time) & (group_df[time_column] <= end_time)].copy()
+                if not filtered.empty:
+                    val_col = filtered.columns[1]
+                    base_row = filtered[filtered[time_column] == start_time]
+                    if not base_row.empty:
+                        base_val = base_row[val_col].values[0]
+                        filtered['Index'] = (filtered[val_col] / base_val * 100) if base_val != 0 else 100.0
+                        final_plot_data[label] = filtered
+
+            # Chart Drawing
             st.subheader("Chart Preview")
-            
             fig, ax = plt.subplots(figsize=(20, 10))
+            colors = [PURPLE, DARK_PURPLE, DARK_GREY, '#FF6B6B', '#4ECDC4', '#45B7D1', '#F9A825', '#2E7D32']
             
-            x_values = chart_data_filtered[time_column].values
-            x_pos = np.arange(len(x_values))
+            x_vals_str = [str(t) for t in sorted(all_times) if start_time <= t <= end_time]
+            x_pos = np.arange(len(x_vals_str))
             
-            # Calculate font size
-            font_size = int(max(7, min(21, 150 / len(chart_data_filtered))))
-            
-            # Find max and min values
-            index_cols = [f'{col}_Index' for col in value_columns]
-            max_val = max([chart_data_filtered[col].max() for col in index_cols])
-            min_val = min([chart_data_filtered[col].min() for col in index_cols])
-            
-            # Set y-axis range to show -20% to 20% (symmetric)
-            y_min = 80  # -20%
-            y_max = 120  # +20%
-            
-            # Color palette
-            colors = [PURPLE, DARK_PURPLE, DARK_GREY, '#FF6B6B', '#4ECDC4', '#45B7D1']
-            
-            # Plot lines
-            for idx, (col, color) in enumerate(zip(value_columns, colors[:len(value_columns)])):
-                index_col = f'{col}_Index'
-                ax.plot(x_pos, chart_data_filtered[index_col].values, 
-                       color=color, marker='o', linestyle='-', 
-                       linewidth=2.5, markersize=8, label=col)
-            
-            # Add value labels if enabled
-            if show_labels:
-                for idx, (col, color) in enumerate(zip(value_columns, colors[:len(value_columns)])):
-                    index_col = f'{col}_Index'
-                    y_values = chart_data_filtered[index_col].values
-                    
-                    for i, y in enumerate(y_values):
-                        # Get all values at this x position
-                        all_vals = [chart_data_filtered[f'{c}_Index'].values[i] for c in value_columns]
-                        
-                        # Determine positioning
-                        if y == max(all_vals):
-                            v_offset = max_val * 0.03
-                            va = 'bottom'
-                        elif y == min(all_vals):
-                            v_offset = -max_val * 0.025
-                            va = 'top'
-                        else:
-                            if abs(y - max(all_vals)) < abs(y - min(all_vals)):
-                                v_offset = max_val * 0.03
-                                va = 'bottom'
-                            else:
-                                v_offset = -max_val * 0.025
-                                va = 'top'
-                        
-                        # Add text with percentage format
-                        percentage_change = int(y - 100)
-                        if percentage_change > 0:
-                            label_text = f"+{percentage_change}%"
-                        else:
-                            label_text = f"{percentage_change}%"
-                        
-                        ax.text(x_pos[i], y + v_offset, label_text, 
-                               ha='center', va=va, fontsize=font_size, 
-                               color=color, fontweight='bold')
-            
-            # Configure x-axis
+            font_size = int(max(7, min(21, 150 / len(x_vals_str))))
+
+            for i, (label, df) in enumerate(final_plot_data.items()):
+                color = colors[i % len(colors)]
+                ax.plot(x_pos, df['Index'], marker='o', label=label, color=color, linewidth=2.5, markersize=8)
+                
+                if st.checkbox(f"Show labels for {label}", value=True):
+                    for idx, row in enumerate(df.itertuples()):
+                        perc = int(round(row.Index - 100))
+                        txt = f"{'+' if perc > 0 else ''}{perc}%"
+                        ax.text(idx, row.Index + (3 if row.Index >= 100 else -5), txt, 
+                                ha='center', color=color, fontweight='bold', fontsize=font_size)
+
+            # Formatting
             ax.set_xticks(x_pos)
-            ax.set_xticklabels(x_values, fontsize=font_size)
-            ax.set_xlim(-0.5, len(x_values) - 0.5)
+            ax.set_xticklabels(x_vals_str, fontsize=font_size)
+            ax.yaxis.set_major_formatter(FuncFormatter(lambda v, p: f"{int(round(v-100))}%"))
+            for spine in ax.spines.values(): spine.set_visible(False)
+            ax.legend(loc='upper right', bbox_to_anchor=(1, 1.1), frameon=False)
+            plt.title(f"Indexed Trend ({start_time} = 100)", fontsize=21, fontweight='bold', pad=40, color=BLACK_PURPLE)
             
-            # Configure y-axis
-            ax.set_ylim(y_min - 5, y_max)
-            
-            def format_percentage(value, pos):
-                return f"{int(value - 100)}%"
-            
-            ax.yaxis.set_major_formatter(FuncFormatter(format_percentage))
-            ax.yaxis.set_major_locator(FixedLocator([80, 90, 100, 110, 120]))
-            ax.tick_params(left=False, labelleft=True, length=0, labelsize=font_size)
-            ax.tick_params(bottom=False, labelbottom=True, length=0, labelsize=font_size)
-            
-            # Remove all spines
-            for spine in ax.spines.values():
-                spine.set_visible(False)
-            
-            # Add legend
-            ax.legend(loc='upper right', bbox_to_anchor=(1, 1.15), frameon=False, prop={'size': 13}, ncol=1)
-            
-            # Add title
-            plt.title(chart_title, fontsize=21, fontweight='bold', pad=100, color=BLACK_PURPLE)
-            
-            plt.tight_layout()
-            
-            # Display chart
             st.pyplot(fig)
-            
-            # Export functionality
-            st.subheader("Export Chart")
-            
-            # Create download button
+
+            # Export
             buf = io.BytesIO()
-            if export_format == 'PNG':
-                fig.savefig(buf, format='png', dpi=300, bbox_inches='tight')
-                file_extension = 'png'
-                mime_type = 'image/png'
-            else:
-                fig.savefig(buf, format='svg', bbox_inches='tight')
-                file_extension = 'svg'
-                mime_type = 'image/svg+xml'
+            fig.savefig(buf, format='png', dpi=300, bbox_inches='tight')
+            st.download_button("Download PNG", buf.getvalue(), "indexed_chart.png", "image/png")
             
-            buf.seek(0)
-            
-            st.download_button(
-                label=f"Download as {export_format}",
-                data=buf,
-                file_name=f"indexed_chart.{file_extension}",
-                mime=mime_type
-            )
-            
-            plt.close(fig)
-        
-        else:
-            st.info("Please select at least one value column to plot.")
-    
     except Exception as e:
-        st.error(f"Error loading file: {str(e)}")
+        st.error(f"Error: {str(e)}")
 else:
-    st.info("Please upload a CSV or Excel file to get started.")
+    st.info("Please upload a file to begin.")
