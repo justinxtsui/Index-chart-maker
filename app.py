@@ -53,7 +53,6 @@ with st.sidebar:
             time_column = st.selectbox("1. Select Time Column", options=data.columns.tolist())
             time_period = st.radio("2. Time Period Type", options=['Year', 'Month', 'Quarter'], horizontal=True)
 
-            # Robust Time Pre-processing
             temp_proc = data.copy()
             if time_period == 'Year':
                 temp_proc[time_column] = pd.to_numeric(temp_proc[time_column].astype(str).str.strip(), errors='coerce')
@@ -113,7 +112,6 @@ with st.sidebar:
         except Exception as e:
             st.sidebar.error(f"Setup Error: {e}")
 
-# Rendering Logic
 if uploaded_file is not None and value_columns:
     try:
         temp_chart_data = data.copy()
@@ -142,35 +140,67 @@ if uploaded_file is not None and value_columns:
             std_agg = temp_chart_data.groupby(time_column)[value_columns].sum().reset_index()
             for v in value_columns: plot_groups[v] = std_agg[[time_column, v]]
 
+        # Prepare processed data for all lines
+        processed_lines = []
+        for orig_label, df in plot_groups.items():
+            filtered = df[(df[time_column] >= start_time) & (df[time_column] <= end_time)].sort_values(time_column).reset_index(drop=True)
+            if not filtered.empty:
+                v_col = filtered.columns[1]
+                base_val = filtered[filtered[time_column] == start_time][v_col].values[0]
+                filtered['Idx'] = (filtered[v_col] / base_val * 100) if base_val != 0 else 100.0
+                processed_lines.append({'label': orig_label, 'data': filtered})
+
         fig, ax = plt.subplots(figsize=(16, 8))
         colors = [PURPLE, DARK_PURPLE, DARK_GREY, '#FF6B6B', '#4ECDC4', '#45B7D1', '#F9A825', '#2E7D32']
         x_vals_str = [str(t) for t in all_times if start_time <= t <= end_time]
         x_pos = np.arange(len(x_vals_str))
         font_size = int(max(7, min(14, 150 / len(x_vals_str))))
 
-        for i, (orig_label, df) in enumerate(plot_groups.items()):
-            filtered = df[(df[time_column] >= start_time) & (df[time_column] <= end_time)].sort_values(time_column).reset_index(drop=True)
-            if filtered.empty: continue
-            
-            v_col = filtered.columns[1]
-            base_val = filtered[filtered[time_column] == start_time][v_col].values[0]
-            filtered['Idx'] = (filtered[v_col] / base_val * 100) if base_val != 0 else 100.0
-            
+        # Draw Lines
+        for i, line_obj in enumerate(processed_lines):
             color = colors[i % len(colors)]
-            # --- DOT SIZE REDUCED TO 4 ---
-            ax.plot(x_pos, filtered['Idx'], marker='o', label=custom_labels.get(orig_label, orig_label), 
+            ax.plot(x_pos, line_obj['data']['Idx'], marker='o', label=custom_labels.get(line_obj['label'], line_obj['label']), 
                     color=color, linewidth=2.5, markersize=4)
-            
-            if show_all_labels:
-                vals = filtered['Idx'].tolist()
-                for idx, val in enumerate(vals):
-                    if only_final_label and idx != len(vals)-1: continue
+
+        # Apply New Label Logic
+        if show_all_labels and processed_lines:
+            num_points = len(x_pos)
+            for idx in range(num_points):
+                # Get all values at this current x-position across all lines
+                current_values = []
+                for line_obj in processed_lines:
+                    if idx < len(line_obj['data']):
+                        current_values.append(line_obj['data']['Idx'][idx])
+                    else:
+                        current_values.append(None)
+                
+                valid_vals = [v for v in current_values if v is not None]
+                if not valid_vals: continue
+                
+                max_at_pos = max(valid_vals)
+                min_at_pos = min(valid_vals)
+
+                for i, line_obj in enumerate(processed_lines):
+                    if idx >= len(line_obj['data']): continue
+                    if only_final_label and idx != num_points - 1: continue
+                    
+                    val = line_obj['data']['Idx'][idx]
                     perc = int(round(val - 100))
                     txt = f"{'+' if perc > 0 else ''}{perc}%"
+                    color = colors[i % len(colors)]
+
                     if only_final_label:
                         ax.text(idx + 0.15, val, txt, ha='left', va='center', color=color, fontweight='bold', fontsize=font_size)
                     else:
-                        va, v_off = ('bottom', 3) if (idx == 0 or val >= vals[idx-1]) else ('top', -6)
+                        # NEW LOGIC: Larger goes top, smaller goes bottom
+                        if val == max_at_pos:
+                            va, v_off = 'bottom', 3
+                        elif val == min_at_pos:
+                            va, v_off = 'top', -6
+                        else:
+                            # If it's a middle value, default to top unless it's very crowded
+                            va, v_off = 'bottom', 3
+                        
                         ax.text(idx, val + v_off, txt, ha='center', va=va, color=color, fontweight='bold', fontsize=font_size)
 
         ax.set_xticks(x_pos)
