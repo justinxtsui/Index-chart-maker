@@ -79,7 +79,7 @@ plt.rcParams['font.family'] = 'sans-serif'
 plt.rcParams['font.sans-serif'] = ['Arial', 'Public Sans', 'DejaVu Sans']
 
 # --- HEADER AREA ---
-st.image("https://github.com/justinxtsui/Index-chart-maker/blob/main/Screenshot%202026-02-06%20at%2016.51.25.png?raw=true", width=400) 
+st.image("https://github.com/justinxtsui/Index-chart-maker/blob/main/Screenshot%202026-02-06%20at%2016.51.25.png?raw=true", width=300) 
 
 st.markdown('<div class="app-title">Dexter ( ◡̀_◡́)ᕤ </div>', unsafe_allow_html=True)
 st.markdown('<div class="app-attribution">by JT</div>', unsafe_allow_html=True)
