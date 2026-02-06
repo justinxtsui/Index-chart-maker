@@ -67,9 +67,9 @@ plt.rcParams['font.sans-serif'] = ['Arial', 'Public Sans', 'DejaVu Sans']
 
 # --- HEADER AREA ---
 # width increased to 400 to make the image larger and ensure it is uncropped
-st.image("https://github.com/justinxtsui/Index-chart-maker/blob/main/Beauhurst%20Insights%20Logo.png?raw=true", width=400) 
+st.image("https://raw.githubusercontent.com/justinxtsui/Index-chart-maker/refs/heads/main/Beauhurst%20Insights%20Logo.png", width=300) 
 
-st.markdown('<h1 class="app-title">(Dexter by JT </h1>', unsafe_allow_html=True)
+st.markdown('<h1 class="app-title">Dex-ter by JT </h1>', unsafe_allow_html=True)
 st.markdown('<p class="app-subtitle">Turn fundraising exports into indexed time series charts (For internal use only)</p>', unsafe_allow_html=True)
 st.markdown('<hr class="bold-divider">', unsafe_allow_html=True)
 
