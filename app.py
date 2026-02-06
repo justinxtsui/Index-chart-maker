@@ -66,9 +66,18 @@ if uploaded_file is not None:
         if value_columns:
             temp_data = data.copy()
             
-            # Format time
+            # IMPROVED TIME CONVERSION LOGIC
             if time_period == 'Year':
-                temp_data[time_column] = pd.to_datetime(temp_data[time_column], errors='coerce').dt.year
+                # Convert to string, strip whitespace, then extract digits and convert to int
+                temp_data[time_column] = temp_data[time_column].astype(str).str.strip()
+                # Use pd.to_numeric to get integers, coerce errors to NaN to drop them
+                temp_data[time_column] = pd.to_numeric(temp_data[time_column], errors='coerce')
+                
+                # Check if it looks like it might still be a full date string (length > 4)
+                # and only apply dt.year if the column wasn't successfully converted to simple years
+                if temp_data[time_column].isna().any() or temp_data[time_column].max() > 3000:
+                   temp_data[time_column] = pd.to_datetime(data[time_column], errors='coerce').dt.year
+            
             elif time_period == 'Month':
                 temp_data[time_column] = pd.to_datetime(temp_data[time_column], errors='coerce')
             elif time_period == 'Quarter':
@@ -126,7 +135,7 @@ if uploaded_file is not None:
             fig, ax = plt.subplots(figsize=(20, 10))
             colors = [PURPLE, DARK_PURPLE, DARK_GREY, '#FF6B6B', '#4ECDC4', '#45B7D1', '#F9A825', '#2E7D32']
             
-            x_vals_str = [str(t) for t in all_times if start_time <= t <= end_time]
+            x_vals_str = [str(t) for t in sorted(all_times) if start_time <= t <= end_time]
             x_pos = np.arange(len(x_vals_str))
             font_size = int(max(7, min(21, 150 / len(x_vals_str))))
 
@@ -141,7 +150,6 @@ if uploaded_file is not None:
                         perc = int(round(val - 100))
                         txt = f"{'+' if perc > 0 else ''}{perc}%"
                         
-                        # Logic: Higher relative to previous = Top, Lower relative to previous = Bottom
                         if idx == 0:
                             va, v_offset = 'bottom', 3
                         else:
