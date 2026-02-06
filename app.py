@@ -57,7 +57,7 @@ plt.rcParams['font.family'] = 'sans-serif'
 plt.rcParams['font.sans-serif'] = ['Arial', 'Public Sans', 'DejaVu Sans']
 
 # --- MAIN AREA HEADER ---
-st.markdown('<h1 class="app-title">Indexter by JT @Beauhurst Insightsr</h1>', unsafe_allow_html=True)
+st.markdown('<h1 class="app-title">(In)Dexter by JT @Beauhurst Insights</h1>', unsafe_allow_html=True)
 st.markdown('<p class="app-subtitle">Turn fundraising exports into indexed time series charts (For internal use only)</p>', unsafe_allow_html=True)
 st.divider() # Simple divider line for visual distinction
 
