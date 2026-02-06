@@ -67,7 +67,7 @@ plt.rcParams['font.sans-serif'] = ['Arial', 'Public Sans', 'DejaVu Sans']
 
 # --- HEADER AREA ---
 # To add your logo, replace the URL below with your local path or image link
-st.image("Beauhurst Insights Logo.png", width=200) 
+st.image("https://github.com/justinxtsui/Index-chart-maker/blob/main/Beauhurst%20Insights%20Logo.png?raw=true", width=200) 
 
 st.markdown('<h1 class="app-title">(In)Dexter by JT @Beauhurst Insights</h1>', unsafe_allow_html=True)
 st.markdown('<p class="app-subtitle">Turn fundraising exports into indexed time series charts (For internal use only)</p>', unsafe_allow_html=True)
