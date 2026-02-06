@@ -72,15 +72,15 @@ plt.rcParams['font.sans-serif'] = ['Arial', 'Public Sans', 'DejaVu Sans']
 
 # --- HEADER AREA ---
 # Fixed width to 300 and ensured no cropping via CSS above
-st.image("https://github.com/justinxtsui/Index-chart-maker/blob/main/Screenshot%202026-02-06%20at%2015.30.32.png?raw=true", width=300) 
+st.image("https://github.com/justinxtsui/Index-chart-maker/blob/main/Screenshot%202026-02-06%20at%2015.30.32.png?raw=true", width=500) 
 
-st.markdown('<h1 class="app-title">(In)Dexter by JT @Beauhurst Insights</h1>', unsafe_allow_html=True)
+st.markdown('<h1 class="app-title">(In)Dex-ter by JT </h1>', unsafe_allow_html=True)
 st.markdown('<p class="app-subtitle">Turn fundraising exports into indexed time series charts (For internal use only)</p>', unsafe_allow_html=True)
 st.markdown('<hr class="bold-divider">', unsafe_allow_html=True)
 
 # --- SIDEBAR LOGIC FLOW ---
 with st.sidebar:
-    st.header("🛠 Configuration")
+    st.header("Select data to analysis")
     
     # Placeholder to maintain logic flow before file is uploaded
     uploaded_file = st.file_uploader("Upload Data (CSV or Excel)", type=['csv', 'xlsx', 'xls'])
@@ -168,7 +168,7 @@ with st.sidebar:
             st.divider()
 
             # 7. Design Elements
-            st.header("🎨 Design & Export")
+            st.header("Design & Export")
             show_all_labels = st.checkbox("Show value labels on chart", value=True)
             only_final_label = st.checkbox("Only show final year value", value=False)
             export_format = st.selectbox("Format", options=['PNG', 'SVG (Vectorized)'])
