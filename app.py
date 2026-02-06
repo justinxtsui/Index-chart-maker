@@ -75,7 +75,8 @@ with st.sidebar:
             elif time_period == 'Month':
                 temp_proc[time_column] = pd.to_datetime(temp_proc[time_column], errors='coerce')
             elif time_period == 'Quarter':
-                temp_proc[time_column] = pd.to_datetime(temp_proc[time_column], errors='coerce').dt.to_period('Q')
+                temp_data_dt = pd.to_datetime(data[time_column], errors='coerce')
+                temp_proc[time_column] = temp_data_dt.dt.to_period('Q')
             
             temp_proc = temp_proc.dropna(subset=[time_column])
             all_times = sorted(temp_proc[time_column].unique())
@@ -108,18 +109,41 @@ with st.sidebar:
 
             st.divider()
 
+            # NEW SECTION: LABELS
+            st.header("🏷 Labels")
+            custom_chart_title = st.text_input("Chart Title", value=f"Indexed Trend ({start_time} = 100)")
+            custom_y_label = st.text_input("Y Axis Label", value="Index Change (%)")
+            
+            # Line Key Label Dictionary
+            st.write("**Line Key Labels**")
+            custom_labels = {}
+            # We generate keys based on what will be plotted
+            keys_to_label = []
+            if value_columns:
+                if use_category and selected_categories:
+                    if include_overall:
+                        for v in value_columns: keys_to_label.append(f"Overall - {v}")
+                    for cat in selected_categories:
+                        for v in value_columns: keys_to_label.append(f"{cat} - {v}")
+                else:
+                    for v in value_columns: keys_to_label.append(v)
+            
+            for key in keys_to_label:
+                custom_labels[key] = st.text_input(f"Label for: {key}", value=key)
+
+            st.divider()
+
             # 7. Design Elements
             st.write("🎨 Design & Export")
             show_all_labels = st.checkbox("Show value labels on chart", value=True)
             export_format = st.selectbox("Format for Adobe/Web", options=['PNG', 'SVG (Vectorized)'])
 
         except Exception as e:
-            st.error(f"Error: {e}")
+            st.sidebar.error(f"Error: {e}")
 
 # --- MAIN CHARTING LOGIC ---
 if uploaded_file is not None and value_columns:
     try:
-        # Re-apply processing to temp_data for charting
         temp_data = data.copy()
         if time_period == 'Year':
             temp_data[time_column] = temp_data[time_column].astype(str).str.strip()
@@ -129,7 +153,8 @@ if uploaded_file is not None and value_columns:
         elif time_period == 'Month':
             temp_data[time_column] = pd.to_datetime(temp_data[time_column], errors='coerce')
         elif time_period == 'Quarter':
-            temp_data[time_column] = pd.to_datetime(temp_data[time_column], errors='coerce').dt.to_period('Q')
+            temp_data_dt = pd.to_datetime(data[time_column], errors='coerce')
+            temp_data[time_column] = temp_data_dt.dt.to_period('Q')
         
         temp_data = temp_data.dropna(subset=[time_column])
         if "Row Count" in value_columns:
@@ -171,9 +196,11 @@ if uploaded_file is not None and value_columns:
         x_pos = np.arange(len(x_vals_str))
         font_size = int(max(7, min(14, 150 / len(x_vals_str))))
 
-        for i, (label, df) in enumerate(final_plot_data.items()):
+        for i, (original_label, df) in enumerate(final_plot_data.items()):
             color = colors[i % len(colors)]
-            ax.plot(x_pos, df['Index'], marker='o', label=label, color=color, linewidth=2.5, markersize=8)
+            # Use custom label from sidebar dict
+            display_label = custom_labels.get(original_label, original_label)
+            ax.plot(x_pos, df['Index'], marker='o', label=display_label, color=color, linewidth=2.5, markersize=8)
             
             if show_all_labels:
                 indices = df['Index'].tolist()
@@ -188,24 +215,21 @@ if uploaded_file is not None and value_columns:
         ax.set_xticks(x_pos)
         ax.set_xticklabels(x_vals_str, fontsize=font_size)
         ax.yaxis.set_major_formatter(FuncFormatter(lambda v, p: f"{int(round(v-100))}%"))
+        ax.set_ylabel(custom_y_label, fontfamily='sans-serif', fontsize=font_size + 2, fontweight='bold', color=DARK_GREY)
         ax.tick_params(axis='both', which='major', labelsize=font_size, length=0)
         for label in ax.get_yticklabels(): label.set_fontfamily('sans-serif')
         for spine in ax.spines.values(): spine.set_visible(False)
         ax.legend(loc='upper right', bbox_to_anchor=(1, 1.15), frameon=False, prop={'family': 'sans-serif', 'size': font_size})
-        plt.title(f"Indexed Trend ({start_time} = 100)", fontsize=21, fontweight='bold', pad=60, color=BLACK_PURPLE)
+        plt.title(custom_chart_title, fontsize=21, fontweight='bold', pad=60, color=BLACK_PURPLE)
         plt.tight_layout()
         
         st.pyplot(fig)
 
-        # Download in Sidebar for clean UI
         with st.sidebar:
             buf = io.BytesIO()
             fmt = "svg" if "SVG" in export_format else "png"
             fig.savefig(buf, format=fmt, dpi=300, bbox_inches='tight')
             st.download_button(f"📥 Download {export_format}", buf.getvalue(), f"chart.{fmt}", f"image/{fmt}")
-
-        with st.expander("View Filtered Data Table"):
-            st.write(final_plot_data)
 
     except Exception as e:
         st.error(f"Visualization Error: {e}")
