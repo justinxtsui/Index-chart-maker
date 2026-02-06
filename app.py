@@ -40,7 +40,15 @@ st.markdown(f"""
         letter-spacing: -1px;
         color: {BLACK_PURPLE};
         margin-bottom: 0px;
-        line-height: 1.2;
+        line-height: 1.1;
+    }}
+    /* Attribution Styling - Smaller font below title */
+    .app-attribution {{
+        font-size: 24px;
+        font-weight: 600;
+        color: {BLACK_PURPLE};
+        margin-top: 0px;
+        margin-bottom: 10px;
     }}
     /* Subtitle updated to Black */
     .app-subtitle {{
@@ -71,10 +79,10 @@ plt.rcParams['font.family'] = 'sans-serif'
 plt.rcParams['font.sans-serif'] = ['Arial', 'Public Sans', 'DejaVu Sans']
 
 # --- HEADER AREA ---
-# Fixed width to 300 and ensured no cropping via CSS above
-st.image("https://github.com/justinxtsui/Index-chart-maker/blob/main/Screenshot%202026-02-06%20at%2015.38.21.png?raw=true", width=400) 
+st.image("https://github.com/justinxtsui/Index-chart-maker/blob/main/Beauhurst%20Insights%20Logo.png?raw=true", width=300) 
 
-st.markdown('<h1 class="app-title"> Dex-ter by JT </h1>', unsafe_allow_html=True)
+st.markdown('<div class="app-title">(In)Dexter</div>', unsafe_allow_html=True)
+st.markdown('<div class="app-attribution">by JT @Beauhurst Insights</div>', unsafe_allow_html=True)
 st.markdown('<p class="app-subtitle">Turn fundraising exports into indexed time series charts (For internal use only)</p>', unsafe_allow_html=True)
 st.markdown('<hr class="bold-divider">', unsafe_allow_html=True)
 
@@ -82,12 +90,10 @@ st.markdown('<hr class="bold-divider">', unsafe_allow_html=True)
 with st.sidebar:
     st.header("Let's go ⸜(｡˃ ᵕ ˂ )⸝♡")
     
-    # Placeholder to maintain logic flow before file is uploaded
     uploaded_file = st.file_uploader("Upload Data (CSV or Excel)", type=['csv', 'xlsx', 'xls'])
     
     if uploaded_file is not None:
         try:
-            # 1. Load Data
             if uploaded_file.name.endswith('.csv'):
                 data = pd.read_csv(uploaded_file)
             else:
@@ -97,13 +103,10 @@ with st.sidebar:
 
             st.header("Select data to analysis")
 
-            # 2. Select Time Column
             time_column = st.selectbox("1. Select Time Column", options=data.columns.tolist())
             
-            # 3. Select Time Period Type
             time_period = st.radio("2. Time Period Type", options=['Year', 'Month', 'Quarter'], horizontal=True)
 
-            # Pre-process time for range selection
             temp_proc = data.copy()
             if time_period == 'Year':
                 temp_proc[time_column] = temp_proc[time_column].astype(str).str.strip()
@@ -119,7 +122,6 @@ with st.sidebar:
             temp_proc = temp_proc.dropna(subset=[time_column])
             all_times = sorted(temp_proc[time_column].unique())
 
-            # 4. Select Time Range
             col_start, col_end = st.columns(2)
             with col_start:
                 start_time = st.selectbox("Start (100)", options=all_times, index=0)
@@ -128,11 +130,9 @@ with st.sidebar:
 
             st.divider()
 
-            # 5. Select Values to Plot
             available_cols = [col for col in data.columns if col != time_column]
             value_columns = st.multiselect("3. Values to Plot", options=["Row Count"] + available_cols)
 
-            # 6. Select Category to Split
             st.write("4. Categorization")
             use_category = st.checkbox("Split by Category Column")
             selected_categories, category_column, include_overall = [], None, False
@@ -145,7 +145,6 @@ with st.sidebar:
 
             st.divider()
 
-            # LABELS SECTION
             st.header("Labels")
             custom_chart_title = st.text_input("Chart Title", value=f"Indexed Trend")
             custom_y_label = st.text_input("Y Axis Label", value="Index Change (%)")
@@ -167,7 +166,6 @@ with st.sidebar:
 
             st.divider()
 
-            # 7. Design Elements
             st.header("Design & Export")
             show_all_labels = st.checkbox("Show value labels on chart", value=True)
             only_final_label = st.checkbox("Only show final year value", value=False)
