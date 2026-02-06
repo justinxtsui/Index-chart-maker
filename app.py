@@ -134,7 +134,6 @@ if uploaded_file is not None:
             x_vals_str = [str(t) for t in sorted(all_times) if start_time <= t <= end_time]
             x_pos = np.arange(len(x_vals_str))
             
-            # ANCHOR FONT SIZE
             font_size = int(max(7, min(21, 150 / len(x_vals_str))))
 
             for i, (label, df) in enumerate(final_plot_data.items()):
@@ -163,17 +162,15 @@ if uploaded_file is not None:
             ax.set_xticks(x_pos)
             ax.set_xticklabels(x_vals_str, fontsize=font_size)
             
-            # FIXED Y-AXIS FONT CONSISTENCY
+            # NO TICK MARKS (Length set to 0)
             ax.yaxis.set_major_formatter(FuncFormatter(lambda v, p: f"{int(round(v-100))}%"))
-            ax.tick_params(axis='both', which='major', labelsize=font_size)
+            ax.tick_params(axis='both', which='major', labelsize=font_size, length=0)
             
-            # Set font family explicitly for y-axis labels
             for label in ax.get_yticklabels():
                 label.set_fontfamily('sans-serif')
 
             for spine in ax.spines.values(): spine.set_visible(False)
             
-            # CONSISTENT LEGEND FONT
             ax.legend(loc='upper right', bbox_to_anchor=(1, 1.15), frameon=False, 
                       prop={'family': 'sans-serif', 'size': font_size})
             
