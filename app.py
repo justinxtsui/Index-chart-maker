@@ -67,7 +67,7 @@ plt.rcParams['font.sans-serif'] = ['Arial', 'Public Sans', 'DejaVu Sans']
 
 # --- HEADER AREA ---
 # To add your logo, replace the URL below with your local path or image link
-st.image("https://via.placeholder.com/200x80?text=LOGO+HERE", width=200) 
+st.image("Beauhurst Insights Logo.png", width=200) 
 
 st.markdown('<h1 class="app-title">(In)Dexter by JT @Beauhurst Insights</h1>', unsafe_allow_html=True)
 st.markdown('<p class="app-subtitle">Turn fundraising exports into indexed time series charts (For internal use only)</p>', unsafe_allow_html=True)
