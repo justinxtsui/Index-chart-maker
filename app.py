@@ -72,7 +72,7 @@ plt.rcParams['font.sans-serif'] = ['Arial', 'Public Sans', 'DejaVu Sans']
 
 # --- HEADER AREA ---
 # Fixed width to 300 and ensured no cropping via CSS above
-st.image("https://github.com/justinxtsui/Index-chart-maker/blob/main/Screenshot%202026-02-06%20at%2015.30.32.png?raw=true", width=400) 
+st.image("https://github.com/justinxtsui/Index-chart-maker/blob/main/Screenshot%202026-02-06%20at%2015.36.18.png?raw=true", width=400) 
 
 st.markdown('<h1 class="app-title"> Dex-ter by JT </h1>', unsafe_allow_html=True)
 st.markdown('<p class="app-subtitle">Turn fundraising exports into indexed time series charts (For internal use only)</p>', unsafe_allow_html=True)
