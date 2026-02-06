@@ -46,7 +46,7 @@ if uploaded_file is not None:
             available_cols = [col for col in data.columns if col != time_column]
             value_columns = st.multiselect("Select value columns to plot", options=["Row Count"] + available_cols)
 
-        # NEW: Categorization Feature
+        # Categorization Feature
         st.subheader("2. Categorization (Split Index)")
         use_category = st.checkbox("Enable Categorization / Split by Column")
         
@@ -82,20 +82,17 @@ if uploaded_file is not None:
             plot_groups = {}
 
             if use_category and selected_categories:
-                # Add overall data if requested
                 if include_overall:
                     overall_agg = temp_data.groupby(time_column)[value_columns].sum().reset_index()
                     for v_col in value_columns:
                         plot_groups[f"Overall - {v_col}"] = overall_agg[[time_column, v_col]]
                 
-                # Add specific category data
                 for cat in selected_categories:
                     cat_data = temp_data[temp_data[category_column] == cat]
                     cat_agg = cat_data.groupby(time_column)[value_columns].sum().reset_index()
                     for v_col in value_columns:
                         plot_groups[f"{cat} - {v_col}"] = cat_agg[[time_column, v_col]]
             else:
-                # Standard no-category logic
                 standard_agg = temp_data.groupby(time_column)[value_columns].sum().reset_index()
                 for v_col in value_columns:
                     plot_groups[v_col] = standard_agg[[time_column, v_col]]
@@ -109,16 +106,20 @@ if uploaded_file is not None:
             with tr_col2:
                 end_time = st.selectbox("End time", options=all_times, index=len(all_times)-1)
 
+            # Global Label Setting
+            show_all_labels = st.checkbox("Show labels on all points", value=True)
+
             # Process final indexed data
             final_plot_data = {}
             for label, group_df in plot_groups.items():
                 filtered = group_df[(group_df[time_column] >= start_time) & (group_df[time_column] <= end_time)].copy()
+                filtered = filtered.sort_values(time_column).reset_index(drop=True)
                 if not filtered.empty:
                     val_col = filtered.columns[1]
                     base_row = filtered[filtered[time_column] == start_time]
                     if not base_row.empty:
                         base_val = base_row[val_col].values[0]
-                        filtered['Index'] = (filtered[val_col] / base_val * 100) if base_val != 0 else 100.0
+                        filtered['Index'] = (filtered[val_col] / base_val * 100) if (base_val != 0 and pd.notna(base_val)) else 100.0
                         final_plot_data[label] = filtered
 
             # Chart Drawing
@@ -126,29 +127,38 @@ if uploaded_file is not None:
             fig, ax = plt.subplots(figsize=(20, 10))
             colors = [PURPLE, DARK_PURPLE, DARK_GREY, '#FF6B6B', '#4ECDC4', '#45B7D1', '#F9A825', '#2E7D32']
             
-            x_vals_str = [str(t) for t in sorted(all_times) if start_time <= t <= end_time]
+            # Determine global x-axis labels based on the filtered range
+            x_vals_str = [str(t) for t in all_times if start_time <= t <= end_time]
             x_pos = np.arange(len(x_vals_str))
             
             font_size = int(max(7, min(21, 150 / len(x_vals_str))))
 
             for i, (label, df) in enumerate(final_plot_data.items()):
                 color = colors[i % len(colors)]
+                # Map the dataframe to the correct x positions
                 ax.plot(x_pos, df['Index'], marker='o', label=label, color=color, linewidth=2.5, markersize=8)
                 
-                if st.checkbox(f"Show labels for {label}", value=True):
-                    for idx, row in enumerate(df.itertuples()):
-                        perc = int(round(row.Index - 100))
+                if show_all_labels:
+                    for idx, val in enumerate(df['Index']):
+                        if pd.isna(val): continue
+                        perc = int(round(val - 100))
                         txt = f"{'+' if perc > 0 else ''}{perc}%"
-                        ax.text(idx, row.Index + (3 if row.Index >= 100 else -5), txt, 
+                        # Dynamic vertical offset
+                        v_offset = 3 if val >= 100 else -6
+                        ax.text(idx, val + v_offset, txt, 
                                 ha='center', color=color, fontweight='bold', fontsize=font_size)
 
             # Formatting
             ax.set_xticks(x_pos)
             ax.set_xticklabels(x_vals_str, fontsize=font_size)
+            
+            # Ensure Y-axis shows percentage changes correctly
             ax.yaxis.set_major_formatter(FuncFormatter(lambda v, p: f"{int(round(v-100))}%"))
+            
             for spine in ax.spines.values(): spine.set_visible(False)
-            ax.legend(loc='upper right', bbox_to_anchor=(1, 1.1), frameon=False)
-            plt.title(f"Indexed Trend ({start_time} = 100)", fontsize=21, fontweight='bold', pad=40, color=BLACK_PURPLE)
+            ax.legend(loc='upper right', bbox_to_anchor=(1, 1.15), frameon=False, prop={'size': 12})
+            plt.title(f"Indexed Trend ({start_time} = 100)", fontsize=21, fontweight='bold', pad=60, color=BLACK_PURPLE)
+            plt.tight_layout()
             
             st.pyplot(fig)
 
