@@ -13,7 +13,7 @@ DARK_GREY = '#4A4A4A'
 
 st.set_page_config(page_title="Indexed Chart Creator", layout="wide")
 
-# Custom CSS for polished Sidebar and Buttons
+# Custom CSS
 st.markdown(f"""
     <style>
     [data-testid="stSidebar"] {{
@@ -29,59 +29,45 @@ st.markdown(f"""
         border: none;
         padding: 0.5rem;
     }}
-    .stButton>button:hover {{
-        background-color: {DARK_PURPLE};
-        color: white;
-    }}
     </style>
     """, unsafe_allow_html=True)
 
-# Set global font configuration
 plt.rcParams['svg.fonttype'] = 'none'
 plt.rcParams['font.family'] = 'sans-serif'
 plt.rcParams['font.sans-serif'] = ['Arial', 'Public Sans', 'DejaVu Sans']
 
-# --- MAIN AREA HEADER ---
 st.title('📊 Indexed Chart Creator')
 
-# --- SIDEBAR LOGIC FLOW ---
 with st.sidebar:
     st.header("🛠 Configuration")
     uploaded_file = st.file_uploader("Upload Data (CSV or Excel)", type=['csv', 'xlsx', 'xls'])
     
     if uploaded_file is not None:
         try:
-            # 1. Load Data
             if uploaded_file.name.endswith('.csv'):
                 data = pd.read_csv(uploaded_file)
             else:
                 data = pd.read_excel(uploaded_file)
             
             st.divider()
-
-            # 2. Select Time Column
             time_column = st.selectbox("1. Select Time Column", options=data.columns.tolist())
-            
-            # 3. Select Time Period Type
             time_period = st.radio("2. Time Period Type", options=['Year', 'Month', 'Quarter'], horizontal=True)
 
-            # Pre-process time for range selection
+            # Robust Time Pre-processing
             temp_proc = data.copy()
             if time_period == 'Year':
-                temp_proc[time_column] = temp_proc[time_column].astype(str).str.strip()
-                temp_proc[time_column] = pd.to_numeric(temp_proc[time_column], errors='coerce')
-                if temp_proc[time_column].isna().any() or temp_proc[time_column].max() > 3000:
+                temp_proc[time_column] = pd.to_numeric(temp_proc[time_column].astype(str).str.strip(), errors='coerce')
+                if temp_proc[time_column].isna().any():
                     temp_proc[time_column] = pd.to_datetime(data[time_column], errors='coerce').dt.year
             elif time_period == 'Month':
                 temp_proc[time_column] = pd.to_datetime(temp_proc[time_column], errors='coerce')
             elif time_period == 'Quarter':
-                temp_data_dt = pd.to_datetime(data[time_column], errors='coerce')
-                temp_proc[time_column] = temp_data_dt.dt.to_period('Q')
+                temp_dt = pd.to_datetime(temp_proc[time_column], errors='coerce')
+                temp_proc[time_column] = temp_dt.dt.to_period('Q')
             
             temp_proc = temp_proc.dropna(subset=[time_column])
             all_times = sorted(temp_proc[time_column].unique())
 
-            # 4. Select Time Range
             col_start, col_end = st.columns(2)
             with col_start:
                 start_time = st.selectbox("Start (100)", options=all_times, index=0)
@@ -89,154 +75,113 @@ with st.sidebar:
                 end_time = st.selectbox("End Period", options=all_times, index=len(all_times)-1)
 
             st.divider()
-
-            # 5. Select Values to Plot
             available_cols = [col for col in data.columns if col != time_column]
             value_columns = st.multiselect("3. Values to Plot", options=["Row Count"] + available_cols)
 
-            # 6. Select Category to Split
             st.write("4. Categorization")
             use_category = st.checkbox("Split by Category Column")
-            selected_categories = []
-            category_column = None
-            include_overall = False
+            selected_categories, category_column, include_overall = [], None, False
             
             if use_category:
                 category_column = st.selectbox("Category Column", options=[c for c in data.columns if c != time_column])
-                unique_cats = data[category_column].unique().tolist()
-                selected_categories = st.multiselect(f"Specific {category_column} Values", options=unique_cats)
+                selected_categories = st.multiselect(f"Specific Values", options=data[category_column].unique().tolist())
                 include_overall = st.checkbox("Include Overall Trend", value=True)
 
             st.divider()
-
-            # LABELS SECTION
             st.header("🏷 Labels")
-            custom_chart_title = st.text_input("Chart Title", value=f"Indexed Trend ({start_time} = 100)")
+            custom_chart_title = st.text_input("Chart Title", value=f"Indexed Trend")
             custom_y_label = st.text_input("Y Axis Label", value="Index Change (%)")
             
-            st.write("**Line Key Labels**")
             custom_labels = {}
             keys_to_label = []
             if value_columns:
                 if use_category and selected_categories:
-                    if include_overall:
-                        for v in value_columns: keys_to_label.append(f"Overall - {v}")
-                    for cat in selected_categories:
-                        for v in value_columns: keys_to_label.append(f"{cat} - {v}")
+                    if include_overall: [keys_to_label.append(f"Overall - {v}") for v in value_columns]
+                    for cat in selected_categories: [keys_to_label.append(f"{cat} - {v}") for v in value_columns]
                 else:
-                    for v in value_columns: keys_to_label.append(v)
+                    [keys_to_label.append(v) for v in value_columns]
             
             for key in keys_to_label:
-                custom_labels[key] = st.text_input(f"Label for: {key}", value=key)
+                custom_labels[key] = st.text_input(f"Label: {key}", value=key)
 
             st.divider()
-
-            # DESIGN SECTION
             st.header("🎨 Design & Export")
             show_all_labels = st.checkbox("Show value labels on chart", value=True)
             only_final_label = st.checkbox("Only show final year value", value=False)
-            export_format = st.selectbox("Format for Adobe/Web", options=['PNG', 'SVG (Vectorized)'])
+            export_format = st.selectbox("Format", options=['PNG', 'SVG (Vectorized)'])
 
         except Exception as e:
-            st.sidebar.error(f"Error: {e}")
+            st.sidebar.error(f"Setup Error: {e}")
 
-# --- MAIN CHARTING LOGIC ---
+# Rendering Logic
 if uploaded_file is not None and value_columns:
     try:
-        temp_data = data.copy()
+        temp_chart_data = data.copy()
         if time_period == 'Year':
-            temp_data[time_column] = temp_data[time_column].astype(str).str.strip()
-            temp_data[time_column] = pd.to_numeric(temp_data[time_column], errors='coerce')
-            if temp_data[time_column].isna().any() or temp_data[time_column].max() > 3000:
-                temp_data[time_column] = pd.to_datetime(data[time_column], errors='coerce').dt.year
+            temp_chart_data[time_column] = pd.to_numeric(temp_chart_data[time_column].astype(str).str.strip(), errors='coerce')
+            if temp_chart_data[time_column].isna().any():
+                temp_chart_data[time_column] = pd.to_datetime(data[time_column], errors='coerce').dt.year
         elif time_period == 'Month':
-            temp_data[time_column] = pd.to_datetime(temp_data[time_column], errors='coerce')
+            temp_chart_data[time_column] = pd.to_datetime(temp_chart_data[time_column], errors='coerce')
         elif time_period == 'Quarter':
-            temp_data_dt = pd.to_datetime(data[time_column], errors='coerce')
-            temp_data[time_column] = temp_data_dt.dt.to_period('Q')
+            temp_dt_c = pd.to_datetime(temp_chart_data[time_column], errors='coerce')
+            temp_chart_data[time_column] = temp_dt_c.dt.to_period('Q')
         
-        temp_data = temp_data.dropna(subset=[time_column])
-        if "Row Count" in value_columns:
-            temp_data["Row Count"] = 1
+        temp_chart_data = temp_chart_data.dropna(subset=[time_column])
+        if "Row Count" in value_columns: temp_chart_data["Row Count"] = 1
 
         plot_groups = {}
         if use_category and selected_categories:
             if include_overall:
-                overall_agg = temp_data.groupby(time_column)[value_columns].sum().reset_index()
-                for v_col in value_columns:
-                    plot_groups[f"Overall - {v_col}"] = overall_agg[[time_column, v_col]]
+                ov_agg = temp_chart_data.groupby(time_column)[value_columns].sum().reset_index()
+                for v in value_columns: plot_groups[f"Overall - {v}"] = ov_agg[[time_column, v]]
             for cat in selected_categories:
-                cat_data = temp_data[temp_data[category_column] == cat]
-                cat_agg = cat_data.groupby(time_column)[value_columns].sum().reset_index()
-                for v_col in value_columns:
-                    plot_groups[f"{cat} - {v_col}"] = cat_agg[[time_column, v_col]]
+                c_agg = temp_chart_data[temp_chart_data[category_column] == cat].groupby(time_column)[value_columns].sum().reset_index()
+                for v in value_columns: plot_groups[f"{cat} - {v}"] = c_agg[[time_column, v]]
         else:
-            standard_agg = temp_data.groupby(time_column)[value_columns].sum().reset_index()
-            for v_col in value_columns:
-                plot_groups[v_col] = standard_agg[[time_column, v_col]]
+            std_agg = temp_chart_data.groupby(time_column)[value_columns].sum().reset_index()
+            for v in value_columns: plot_groups[v] = std_agg[[time_column, v]]
 
-        final_plot_data = {}
-        for label, group_df in plot_groups.items():
-            filtered = group_df[(group_df[time_column] >= start_time) & (group_df[time_column] <= end_time)].copy()
-            filtered = filtered.sort_values(time_column).reset_index(drop=True)
-            if not filtered.empty:
-                v_col = filtered.columns[1]
-                base_row = filtered[filtered[time_column] == start_time]
-                if not base_row.empty:
-                    base_val = base_row[v_col].values[0]
-                    filtered['Index'] = (filtered[v_col] / base_val * 100) if (base_val != 0 and pd.notna(base_val)) else 100.0
-                    final_plot_data[label] = filtered
-
-        # Drawing
         fig, ax = plt.subplots(figsize=(16, 8))
         colors = [PURPLE, DARK_PURPLE, DARK_GREY, '#FF6B6B', '#4ECDC4', '#45B7D1', '#F9A825', '#2E7D32']
-        
         x_vals_str = [str(t) for t in all_times if start_time <= t <= end_time]
         x_pos = np.arange(len(x_vals_str))
         font_size = int(max(7, min(14, 150 / len(x_vals_str))))
 
-        for i, (original_label, df) in enumerate(final_plot_data.items()):
+        for i, (orig_label, df) in enumerate(plot_groups.items()):
+            filtered = df[(df[time_column] >= start_time) & (df[time_column] <= end_time)].sort_values(time_column).reset_index(drop=True)
+            if filtered.empty: continue
+            
+            v_col = filtered.columns[1]
+            base_val = filtered[filtered[time_column] == start_time][v_col].values[0]
+            filtered['Idx'] = (filtered[v_col] / base_val * 100) if base_val != 0 else 100.0
+            
             color = colors[i % len(colors)]
-            display_label = custom_labels.get(original_label, original_label)
-            ax.plot(x_pos, df['Index'], marker='o', label=display_label, color=color, linewidth=2.5, markersize=8)
+            # --- DOT SIZE REDUCED TO 4 ---
+            ax.plot(x_pos, filtered['Idx'], marker='o', label=custom_labels.get(orig_label, orig_label), 
+                    color=color, linewidth=2.5, markersize=4)
             
             if show_all_labels:
-                indices = df['Index'].tolist()
-                for idx, val in enumerate(indices):
-                    if pd.isna(val): continue
-                    
-                    # If "Only show final year" is checked, skip all but the last point
-                    if only_final_label and idx != len(indices) - 1:
-                        continue
-                        
+                vals = filtered['Idx'].tolist()
+                for idx, val in enumerate(vals):
+                    if only_final_label and idx != len(vals)-1: continue
                     perc = int(round(val - 100))
                     txt = f"{'+' if perc > 0 else ''}{perc}%"
-                    
                     if only_final_label:
-                        # Position to the right of the last dot
                         ax.text(idx + 0.15, val, txt, ha='left', va='center', color=color, fontweight='bold', fontsize=font_size)
                     else:
-                        # Original higher/lower logic
-                        if idx == 0: va, v_offset = 'bottom', 3
-                        else: va, v_offset = ('bottom', 3) if val >= indices[idx-1] else ('top', -6)
-                        ax.text(idx, val + v_offset, txt, ha='center', va=va, color=color, fontweight='bold', fontsize=font_size)
+                        va, v_off = ('bottom', 3) if (idx == 0 or val >= vals[idx-1]) else ('top', -6)
+                        ax.text(idx, val + v_off, txt, ha='center', va=va, color=color, fontweight='bold', fontsize=font_size)
 
         ax.set_xticks(x_pos)
         ax.set_xticklabels(x_vals_str, fontsize=font_size)
         ax.yaxis.set_major_formatter(FuncFormatter(lambda v, p: f"{int(round(v-100))}%"))
-        ax.set_ylabel(custom_y_label, fontfamily='sans-serif', fontsize=font_size + 2, fontweight='bold', color=DARK_GREY)
-        ax.tick_params(axis='both', which='major', labelsize=font_size, length=0)
-        for label in ax.get_yticklabels(): label.set_fontfamily('sans-serif')
+        ax.set_ylabel(custom_y_label, fontsize=font_size+2, fontweight='bold', color=DARK_GREY)
+        ax.tick_params(axis='both', labelsize=font_size, length=0)
         for spine in ax.spines.values(): spine.set_visible(False)
-        ax.legend(loc='upper right', bbox_to_anchor=(1, 1.15), frameon=False, prop={'family': 'sans-serif', 'size': font_size})
+        ax.legend(loc='upper right', bbox_to_anchor=(1, 1.15), frameon=False, prop={'size': font_size})
         plt.title(custom_chart_title, fontsize=21, fontweight='bold', pad=60, color=BLACK_PURPLE)
-        
-        # Add extra space on the right if final labels are used
-        if only_final_label:
-            ax.set_xlim(left=-0.5, right=len(x_pos) - 0.5 + 0.8)
-        else:
-            ax.set_xlim(left=-0.5, right=len(x_pos) - 0.5)
-            
+        if only_final_label: ax.set_xlim(right=len(x_pos)-0.5+0.8)
         plt.tight_layout()
         st.pyplot(fig)
 
@@ -249,6 +194,6 @@ if uploaded_file is not None and value_columns:
     except Exception as e:
         st.error(f"Visualization Error: {e}")
 elif uploaded_file is not None:
-    st.info("Please select at least one value to plot from the sidebar.")
+    st.info("👈 Please select 'Values to Plot' in the sidebar to generate the chart.")
 else:
     st.info("Upload a file in the sidebar to begin.")
