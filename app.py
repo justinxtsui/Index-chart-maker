@@ -33,7 +33,7 @@ st.markdown(f"""
         background-color: {DARK_PURPLE};
         color: white;
     }}
-    /* Title Styling - Converted to proper Title format */
+    /* Title Styling */
     .app-title {{
         font-size: 48px;
         font-weight: 800;
@@ -42,11 +42,20 @@ st.markdown(f"""
         margin-bottom: 0px;
         line-height: 1.2;
     }}
+    /* Subtitle updated to Black */
     .app-subtitle {{
-        color: {DARK_GREY};
+        color: #000000;
         font-size: 18px;
         margin-bottom: 5px;
-        opacity: 0.8;
+        font-weight: normal;
+    }}
+    /* Custom Bolder Divider */
+    .bold-divider {{
+        height: 3px;
+        background-color: #e6e9ef;
+        border: none;
+        margin-top: 10px;
+        margin-bottom: 25px;
     }}
     </style>
     """, unsafe_allow_html=True)
@@ -59,7 +68,7 @@ plt.rcParams['font.sans-serif'] = ['Arial', 'Public Sans', 'DejaVu Sans']
 # --- MAIN AREA HEADER ---
 st.markdown('<h1 class="app-title">Time Series Chart Generator</h1>', unsafe_allow_html=True)
 st.markdown('<p class="app-subtitle">Turn fundraising exports into professional indexed time series charts – JT</p>', unsafe_allow_html=True)
-st.divider() # Simple divider line for visual distinction
+st.markdown('<hr class="bold-divider">', unsafe_allow_html=True)
 
 # --- SIDEBAR LOGIC FLOW ---
 with st.sidebar:
