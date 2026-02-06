@@ -65,7 +65,10 @@ plt.rcParams['svg.fonttype'] = 'none'
 plt.rcParams['font.family'] = 'sans-serif'
 plt.rcParams['font.sans-serif'] = ['Arial', 'Public Sans', 'DejaVu Sans']
 
-# --- MAIN AREA HEADER ---
+# --- HEADER AREA ---
+# To add your logo, replace the URL below with your local path or image link
+st.image("https://via.placeholder.com/200x80?text=LOGO+HERE", width=200) 
+
 st.markdown('<h1 class="app-title">(In)Dexter by JT @Beauhurst Insights</h1>', unsafe_allow_html=True)
 st.markdown('<p class="app-subtitle">Turn fundraising exports into indexed time series charts (For internal use only)</p>', unsafe_allow_html=True)
 st.markdown('<hr class="bold-divider">', unsafe_allow_html=True)
@@ -87,7 +90,6 @@ with st.sidebar:
             
             st.divider()
 
-            # NEW PLACEMENT: Moved "Select data to analysis" here
             st.header("Select data to analysis")
 
             # 2. Select Time Column
