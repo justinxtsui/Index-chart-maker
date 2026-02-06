@@ -79,16 +79,16 @@ plt.rcParams['font.family'] = 'sans-serif'
 plt.rcParams['font.sans-serif'] = ['Arial', 'Public Sans', 'DejaVu Sans']
 
 # --- HEADER AREA ---
-st.image("https://github.com/justinxtsui/Index-chart-maker/blob/main/Beauhurst%20Insights%20Logo.png?raw=true", width=300) 
+st.image("https://github.com/justinxtsui/Index-chart-maker/blob/main/Screenshot%202026-02-06%20at%2016.51.25.png?raw=true", width=400) 
 
-st.markdown('<div class="app-title">(In)Dexter</div>', unsafe_allow_html=True)
-st.markdown('<div class="app-attribution">by JT @Beauhurst Insights</div>', unsafe_allow_html=True)
+st.markdown('<div class="app-title">(Dexter (¬_¬")</div>', unsafe_allow_html=True)
+st.markdown('<div class="app-attribution">by JT</div>', unsafe_allow_html=True)
 st.markdown('<p class="app-subtitle">Turn fundraising exports into indexed time series charts (For internal use only)</p>', unsafe_allow_html=True)
 st.markdown('<hr class="bold-divider">', unsafe_allow_html=True)
 
 # --- SIDEBAR LOGIC FLOW ---
 with st.sidebar:
-    st.header("Let's go ⸜(｡˃ ᵕ ˂ )⸝♡")
+    st.header("Let's go!")
     
     uploaded_file = st.file_uploader("Upload Data (CSV or Excel)", type=['csv', 'xlsx', 'xls'])
     
