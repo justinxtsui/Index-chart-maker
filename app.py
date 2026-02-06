@@ -94,7 +94,8 @@ st.image("https://github.com/justinxtsui/Index-chart-maker/blob/main/Screenshot%
 
 st.markdown('<div class="app-title">Dexter ( ◡̀_◡́)ᕤ </div>', unsafe_allow_html=True)
 st.markdown('<div class="app-attribution">by JT</div>', unsafe_allow_html=True)
-st.markdown('<p class="app-subtitle">Turn fundraising exports into indexed time series charts (For internal use only)</p>', unsafe_allow_html=True)
+st.markdown('<p class="app-subtitle">I can turn any data into index chart.</p>', unsafe_allow_html=True)
+st.markdown('<p class="app-subtitle">⚠️: Do not share this bot externally</p>', unsafe_allow_html=True)
 st.markdown('<hr class="bold-divider">', unsafe_allow_html=True)
 
 # --- SIDEBAR LOGIC FLOW ---
@@ -178,7 +179,7 @@ with st.sidebar:
             st.header("Design & Export")
             show_all_labels = st.checkbox("Show value labels on chart", value=True)
             only_final_label = st.checkbox("Only show final year value", value=False)
-            export_format = st.selectbox("Format", options=['PNG', 'SVG (Vectorized)'])
+            export_format = st.selectbox("Format", options=['PNG', 'SVG (Vectorised)'])
 
         except Exception as e:
             st.sidebar.error(f"Setup Error: {e}")
