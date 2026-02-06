@@ -66,7 +66,7 @@ if uploaded_file is not None:
         if value_columns:
             temp_data = data.copy()
             
-            # IMPROVED TIME CONVERSION LOGIC
+            # TIME CONVERSION LOGIC
             if time_period == 'Year':
                 temp_data[time_column] = temp_data[time_column].astype(str).str.strip()
                 temp_data[time_column] = pd.to_numeric(temp_data[time_column], errors='coerce')
@@ -159,10 +159,18 @@ if uploaded_file is not None:
                         ax.text(idx, val + v_offset, txt, 
                                 ha='center', va=va, color=color, fontweight='bold', fontsize=font_size)
 
-            # Formatting
+            # Formatting Axes
             ax.set_xticks(x_pos)
             ax.set_xticklabels(x_vals_str, fontsize=font_size)
+            
+            # FIXED Y-AXIS FONT CONSISTENCY
             ax.yaxis.set_major_formatter(FuncFormatter(lambda v, p: f"{int(round(v-100))}%"))
+            ax.tick_params(axis='both', which='major', labelsize=font_size)
+            
+            # Set font family explicitly for y-axis labels
+            for label in ax.get_yticklabels():
+                label.set_fontfamily('sans-serif')
+
             for spine in ax.spines.values(): spine.set_visible(False)
             
             # CONSISTENT LEGEND FONT
