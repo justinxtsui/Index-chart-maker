@@ -106,7 +106,6 @@ if uploaded_file is not None:
             with tr_col2:
                 end_time = st.selectbox("End time", options=all_times, index=len(all_times)-1)
 
-            # Global Label Setting
             show_all_labels = st.checkbox("Show labels on all points", value=True)
 
             # Process final indexed data
@@ -127,34 +126,37 @@ if uploaded_file is not None:
             fig, ax = plt.subplots(figsize=(20, 10))
             colors = [PURPLE, DARK_PURPLE, DARK_GREY, '#FF6B6B', '#4ECDC4', '#45B7D1', '#F9A825', '#2E7D32']
             
-            # Determine global x-axis labels based on the filtered range
             x_vals_str = [str(t) for t in all_times if start_time <= t <= end_time]
             x_pos = np.arange(len(x_vals_str))
-            
             font_size = int(max(7, min(21, 150 / len(x_vals_str))))
 
             for i, (label, df) in enumerate(final_plot_data.items()):
                 color = colors[i % len(colors)]
-                # Map the dataframe to the correct x positions
                 ax.plot(x_pos, df['Index'], marker='o', label=label, color=color, linewidth=2.5, markersize=8)
                 
                 if show_all_labels:
-                    for idx, val in enumerate(df['Index']):
+                    indices = df['Index'].tolist()
+                    for idx, val in enumerate(indices):
                         if pd.isna(val): continue
                         perc = int(round(val - 100))
                         txt = f"{'+' if perc > 0 else ''}{perc}%"
-                        # Dynamic vertical offset
-                        v_offset = 3 if val >= 100 else -6
+                        
+                        # Logic: Higher relative to previous = Top, Lower relative to previous = Bottom
+                        if idx == 0:
+                            va, v_offset = 'bottom', 3
+                        else:
+                            if val >= indices[idx-1]:
+                                va, v_offset = 'bottom', 3
+                            else:
+                                va, v_offset = 'top', -6
+                        
                         ax.text(idx, val + v_offset, txt, 
-                                ha='center', color=color, fontweight='bold', fontsize=font_size)
+                                ha='center', va=va, color=color, fontweight='bold', fontsize=font_size)
 
             # Formatting
             ax.set_xticks(x_pos)
             ax.set_xticklabels(x_vals_str, fontsize=font_size)
-            
-            # Ensure Y-axis shows percentage changes correctly
             ax.yaxis.set_major_formatter(FuncFormatter(lambda v, p: f"{int(round(v-100))}%"))
-            
             for spine in ax.spines.values(): spine.set_visible(False)
             ax.legend(loc='upper right', bbox_to_anchor=(1, 1.15), frameon=False, prop={'size': 12})
             plt.title(f"Indexed Trend ({start_time} = 100)", fontsize=21, fontweight='bold', pad=60, color=BLACK_PURPLE)
