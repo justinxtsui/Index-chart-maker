@@ -9,6 +9,7 @@ import io
 PURPLE = '#6B67DA'
 DARK_PURPLE = '#38358E'
 BLACK_PURPLE = '#211E52'
+LIGHT_PURPLE = '#BBBAF6' # Added for the underline style
 DARK_GREY = '#4A4A4A'
 
 st.set_page_config(page_title="Indexed Chart Creator", layout="wide")
@@ -20,6 +21,16 @@ st.markdown(f"""
         background-color: #f0f2f6;
         padding-top: 2rem;
     }}
+    
+    /* NEW: Sidebar Heading Design */
+    [data-testid="stSidebar"] h2 {{
+        color: {DARK_PURPLE};
+        font-size: 1.2rem;
+        border-bottom: 2px solid {LIGHT_PURPLE};
+        padding-bottom: 5px;
+        margin-top: 20px;
+    }}
+
     .stButton>button {{
         width: 100%;
         border-radius: 5px;
@@ -99,8 +110,7 @@ with st.sidebar:
             else:
                 data = pd.read_excel(uploaded_file)
             
-            st.divider()
-
+            # 1. Select Data
             st.header("Select data to analysis")
 
             time_column = st.selectbox("1. Select Time Column", options=data.columns.tolist())
@@ -128,12 +138,13 @@ with st.sidebar:
             with col_end:
                 end_time = st.selectbox("End Period", options=all_times, index=len(all_times)-1)
 
-            st.divider()
-
+            # 2. Values
+            st.header("Select Values")
             available_cols = [col for col in data.columns if col != time_column]
             value_columns = st.multiselect("3. Values to Plot", options=["Row Count"] + available_cols)
 
-            st.write("4. Categorization")
+            # 3. Categorization
+            st.header("Categorization")
             use_category = st.checkbox("Split by Category Column")
             selected_categories, category_column, include_overall = [], None, False
             
@@ -143,8 +154,7 @@ with st.sidebar:
                 selected_categories = st.multiselect(f"Specific Values", options=unique_cats)
                 include_overall = st.checkbox("Include Overall Trend", value=True)
 
-            st.divider()
-
+            # 4. Labels
             st.header("Labels")
             custom_chart_title = st.text_input("Chart Title", value=f"Indexed Trend")
             custom_y_label = st.text_input("Y Axis Label", value="Index Change (%)")
@@ -164,8 +174,7 @@ with st.sidebar:
                 for key in keys_to_label:
                     custom_labels[key] = st.text_input(f"Label: {key}", value=key)
 
-            st.divider()
-
+            # 5. Design & Export
             st.header("Design & Export")
             show_all_labels = st.checkbox("Show value labels on chart", value=True)
             only_final_label = st.checkbox("Only show final year value", value=False)
@@ -278,7 +287,7 @@ if uploaded_file is not None and value_columns:
             buf = io.BytesIO()
             fmt = "svg" if "SVG" in export_format else "png"
             fig.savefig(buf, format=fmt, dpi=300, bbox_inches='tight', transparent=True)
-            st.download_button(f"📥 Download {export_format}", buf.getvalue(), f"chart.{fmt}", f"image/{fmt}")
+            st.download_button(f"Download {export_format}", buf.getvalue(), f"chart.{fmt}", f"image/{fmt}")
 
     except Exception as e:
         st.error(f"Visualization Error: {e}")
