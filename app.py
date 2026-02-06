@@ -80,7 +80,7 @@ st.markdown('<hr class="bold-divider">', unsafe_allow_html=True)
 
 # --- SIDEBAR LOGIC FLOW ---
 with st.sidebar:
-    st.header("Select data to analysis")
+    st.header("Let's go ⸜(｡˃ ᵕ ˂ )⸝♡")
     
     # Placeholder to maintain logic flow before file is uploaded
     uploaded_file = st.file_uploader("Upload Data (CSV or Excel)", type=['csv', 'xlsx', 'xls'])
