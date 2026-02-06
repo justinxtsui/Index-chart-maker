@@ -68,13 +68,9 @@ if uploaded_file is not None:
             
             # IMPROVED TIME CONVERSION LOGIC
             if time_period == 'Year':
-                # Convert to string, strip whitespace, then extract digits and convert to int
                 temp_data[time_column] = temp_data[time_column].astype(str).str.strip()
-                # Use pd.to_numeric to get integers, coerce errors to NaN to drop them
                 temp_data[time_column] = pd.to_numeric(temp_data[time_column], errors='coerce')
                 
-                # Check if it looks like it might still be a full date string (length > 4)
-                # and only apply dt.year if the column wasn't successfully converted to simple years
                 if temp_data[time_column].isna().any() or temp_data[time_column].max() > 3000:
                    temp_data[time_column] = pd.to_datetime(data[time_column], errors='coerce').dt.year
             
@@ -137,6 +133,8 @@ if uploaded_file is not None:
             
             x_vals_str = [str(t) for t in sorted(all_times) if start_time <= t <= end_time]
             x_pos = np.arange(len(x_vals_str))
+            
+            # ANCHOR FONT SIZE
             font_size = int(max(7, min(21, 150 / len(x_vals_str))))
 
             for i, (label, df) in enumerate(final_plot_data.items()):
@@ -166,7 +164,11 @@ if uploaded_file is not None:
             ax.set_xticklabels(x_vals_str, fontsize=font_size)
             ax.yaxis.set_major_formatter(FuncFormatter(lambda v, p: f"{int(round(v-100))}%"))
             for spine in ax.spines.values(): spine.set_visible(False)
-            ax.legend(loc='upper right', bbox_to_anchor=(1, 1.15), frameon=False, prop={'size': 12})
+            
+            # CONSISTENT LEGEND FONT
+            ax.legend(loc='upper right', bbox_to_anchor=(1, 1.15), frameon=False, 
+                      prop={'family': 'sans-serif', 'size': font_size})
+            
             plt.title(f"Indexed Trend ({start_time} = 100)", fontsize=21, fontweight='bold', pad=60, color=BLACK_PURPLE)
             plt.tight_layout()
             
