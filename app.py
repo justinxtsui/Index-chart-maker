@@ -12,7 +12,7 @@ BLACK_PURPLE = '#211E52'
 LIGHT_PURPLE = '#BBBAF6' # Added for the underline style
 DARK_GREY = '#4A4A4A'
 
-st.set_page_config(page_title="Index Chart Creator", layout="wide")
+st.set_page_config(page_title="Indexed Chart Creator", layout="wide")
 
 # Custom CSS for UI Distinction and Header Styling
 st.markdown(f"""
@@ -94,7 +94,7 @@ st.image("https://github.com/justinxtsui/Index-chart-maker/blob/main/Screenshot%
 
 st.markdown('<div class="app-title">Dexter ( ◡̀_◡́)ᕤ </div>', unsafe_allow_html=True)
 st.markdown('<div class="app-attribution">by JT</div>', unsafe_allow_html=True)
-st.markdown('<p class="app-subtitle">I can turn any data into an index chart.</p>', unsafe_allow_html=True)
+st.markdown('<p class="app-subtitle">Turn fundraising exports into indexed time series charts (For internal use only)</p>', unsafe_allow_html=True)
 st.markdown('<hr class="bold-divider">', unsafe_allow_html=True)
 
 # --- SIDEBAR LOGIC FLOW ---
@@ -268,6 +268,22 @@ if uploaded_file is not None and value_columns:
                         elif val == min_at_pos: va, v_off = 'top', -6
                         else: va, v_off = 'bottom', 3
                         ax.text(idx, val + v_off, txt, ha='center', va=va, color=color, fontweight='bold', fontsize=font_size)
+
+        # --- LOGIC FOR SYMMETRIC Y-AXIS ---
+        # Calculate the maximum absolute deviation from the baseline (100)
+        all_vals = []
+        for line in processed_lines:
+            all_vals.extend(line['data']['Idx'].tolist())
+        
+        if all_vals:
+            max_dev = max([abs(v - 100) for v in all_vals])
+            # Add 10% padding for visual balance
+            y_limit_delta = max_dev * 1.1 
+            # Ensure a minimum range if data is flat
+            if y_limit_delta < 5: y_limit_delta = 10
+            
+            # Set symmetric limits around 100
+            ax.set_ylim(100 - y_limit_delta, 100 + y_limit_delta)
 
         ax.set_xticks(x_pos)
         ax.set_xticklabels(x_vals_str, fontsize=font_size)
