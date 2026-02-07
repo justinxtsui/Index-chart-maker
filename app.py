@@ -102,7 +102,7 @@ with st.sidebar:
     # Warning message at the absolute top
     st.warning("⚠️ Do not share the bot externally")
 
-    st.header("Let's go!")
+    st.header("1. Selet data for analysis")
     
     uploaded_file = st.file_uploader("Upload Data (CSV or Excel)", type=['csv', 'xlsx', 'xls'])
     
@@ -114,11 +114,11 @@ with st.sidebar:
                 data = pd.read_excel(uploaded_file)
             
             # 1. Select Data
-            st.header("1. Select data for analysis")
+            st.header("2.1 Select time column")
 
-            time_column = st.selectbox("1. Select Time Column", options=data.columns.tolist())
+            time_column = st.selectbox("Select Time Column", options=data.columns.tolist())
             
-            time_period = st.radio("2. Time Period Type", options=['Year', 'Month', 'Quarter'], horizontal=True)
+            time_period = st.radio("Time Period Type", options=['Year', 'Month', 'Quarter'], horizontal=True)
 
             temp_proc = data.copy()
             if time_period == 'Year':
@@ -142,7 +142,7 @@ with st.sidebar:
                 end_time = st.selectbox("End Period", options=all_times, index=len(all_times)-1)
 
             # 2. Values
-            st.header("2. Select Values to show")
+            st.header("2.2 Select Values to show")
             available_cols = [col for col in data.columns if col != time_column]
             value_columns = st.multiselect("3. Values to Plot", options=["Row Count"] + available_cols)
 
