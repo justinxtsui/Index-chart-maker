@@ -114,7 +114,7 @@ with st.sidebar:
                 data = pd.read_excel(uploaded_file)
             
             # 1. Select Data
-            st.header("Select data to analysis")
+            st.header("1. Select data for analysis")
 
             time_column = st.selectbox("1. Select Time Column", options=data.columns.tolist())
             
@@ -142,12 +142,12 @@ with st.sidebar:
                 end_time = st.selectbox("End Period", options=all_times, index=len(all_times)-1)
 
             # 2. Values
-            st.header("Select Values")
+            st.header("2. Select Values to show")
             available_cols = [col for col in data.columns if col != time_column]
             value_columns = st.multiselect("3. Values to Plot", options=["Row Count"] + available_cols)
 
             # 3. Categorization
-            st.header("Categorization")
+            st.header("3. Categorisation")
             use_category = st.checkbox("Split by Category Column")
             selected_categories, category_column, include_overall = [], None, False
             
@@ -158,7 +158,7 @@ with st.sidebar:
                 include_overall = st.checkbox("Include Overall Trend", value=True)
 
             # 4. Labels
-            st.header("Labels")
+            st.header("4. Labels")
             custom_chart_title = st.text_input("Chart Title", value=f"Indexed Trend")
             custom_y_label = st.text_input("Y Axis Label", value="Index Change (%)")
             
@@ -178,7 +178,7 @@ with st.sidebar:
                     custom_labels[key] = st.text_input(f"Label: {key}", value=key)
 
             # 5. Design & Export
-            st.header("Design & Export")
+            st.header("5. Design & Export")
             show_all_labels = st.checkbox("Show value labels on chart", value=True)
             only_final_label = st.checkbox("Only show final year value", value=False)
             export_format = st.selectbox("Format", options=['PNG', 'SVG (Vectorized)'])
